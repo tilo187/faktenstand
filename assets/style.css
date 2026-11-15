@@ -256,3 +256,5 @@ footer.site div{max-width:1120px;margin:0 auto;padding:16px}
 .themen-h{margin-bottom:10px}
 @media (max-width:600px){.lage-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.lage{padding:10px 10px 8px}.lg-v{font-size:21px}.lg-h{font-size:12px}.lg-s,.lg-f{font-size:11.5px}}
 .badge.alt{background:color-mix(in srgb, var(--s4) 18%, transparent);color:var(--text-secondary);text-transform:none;letter-spacing:0;font-weight:600;vertical-align:2px}
+
+.kern-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.kern .lg-f{min-height:1.4em}@media(max-width:900px){.kern-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
