@@ -259,3 +259,4 @@ footer.site div{max-width:1120px;margin:0 auto;padding:16px}
 
 .kern-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.kern .lg-f{min-height:1.4em}@media(max-width:900px){.kern-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .topic-grid+.lage-box{margin-top:34px}.kern-box{margin-bottom:34px}
+.name-def{margin:0 0 26px;padding:10px 16px;border-left:3px solid var(--s1);background:var(--surface);border-radius:0 10px 10px 0}.name-def .nd-w{font-size:15px}.name-def .nd-w span{color:var(--text-muted);font-size:13px;margin-left:6px}.name-def p{margin:4px 0 0;font-size:14.5px;color:var(--text-secondary);max-width:none}
