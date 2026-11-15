@@ -890,7 +890,8 @@
       ctx.font = small; ctx.fillStyle = muted; ctx.fillText("\u00b7 Ansicht vom " + per, tx + bwid + 6, ry + 12);
       cv.toBlob(function (b) {
         var a = document.createElement("a"); a.href = URL.createObjectURL(b);
-        a.download = c.d.id + "_" + c.st.view + ".png"; document.body.appendChild(a); a.click(); a.remove();
+        var zr = (isTimeChart(c.d) && c.st.view !== "balken" && c.d.years.length > 3 && (c.st.von !== c.def.von || c.st.bis !== c.def.bis)) ? "_" + c.d.years[c.st.von] + "-" + c.d.years[c.st.bis] : "";
+        a.download = c.d.id + "_" + c.st.view + zr + ".png"; document.body.appendChild(a); a.click(); a.remove();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
       }, "image/png");
     });
