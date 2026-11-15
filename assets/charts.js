@@ -870,22 +870,24 @@
     var cs0 = getComputedStyle(card), small = "12px " + getComputedStyle(document.body).fontFamily;
     ctx0.font = small; var lines = [], cur = "";
     srcTxt.split(" ").forEach(function (w) { var t = cur ? cur + " " + w : w; if (ctx0.measureText(t).width > W - 2 * pad && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur);
-    H += 6 + lines.length * 16 + 22 + pad;
+    H += 6 + lines.length * 16 + 28 + pad;
     var cv = document.createElement("canvas"); cv.width = Math.round(W * sc); cv.height = Math.round(H * sc);
     var ctx = cv.getContext("2d"); ctx.scale(sc, sc);
     ctx.fillStyle = cs0.backgroundColor || "#fff"; ctx.fillRect(0, 0, W, H);
     var jobs = layout.map(function (L) { return function () { var ox = L.r.left - (L.r.left - cr.left), oy = L.r.top - L.y; return drawBlock(ctx, L.e, cr.left, oy); }; });
     var p = Promise.resolve(); jobs.forEach(function (j) { p = p.then(j); });
-    return p.then(function () {
-      var y = H - pad - 22 - lines.length * 16 + 6, muted = getComputedStyle(card.querySelector(".foot")).color;
+    var lg = document.querySelector(".brand svg.logo"), logoP = lg ? svgImage(lg) : Promise.resolve(null);
+    return p.then(function () { return logoP; }).then(function (logo) {
+      var y = H - pad - 28 - lines.length * 16 + 6, muted = getComputedStyle(card.querySelector(".foot")).color;
       ctx.strokeStyle = getComputedStyle(card).borderTopColor; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, y - 8); ctx.lineTo(W - pad, y - 8); ctx.stroke();
       ctx.font = small; ctx.fillStyle = muted; ctx.textBaseline = "top";
       lines.forEach(function (l, i) { ctx.fillText(l, pad, y + i * 16); });
-      ctx.font = "600 12px " + getComputedStyle(document.body).fontFamily; ctx.fillStyle = getComputedStyle(card.querySelector("h3")).color;
-      var brand = "faktenstand.de", per = new Date().toLocaleDateString("de-DE"), bwid = ctx.measureText(brand).width;
-      ctx.fillText(brand, pad, y + lines.length * 16 + 4);
-      var host = /^https?:/.test(location.protocol) ? location.host + " · " : "";
-      ctx.font = small; ctx.fillStyle = muted; ctx.fillText("· " + host + "Ansicht vom " + per, pad + bwid + 6, y + lines.length * 16 + 4);
+      var ry = y + lines.length * 16 + 4, per = new Date().toLocaleDateString("de-DE"), tx = pad;
+      if (logo) { var lh = 20, lw = lh * 418 / 76; ctx.drawImage(logo, pad, ry, lw, lh); tx = pad + lw + 10; }
+      ctx.textBaseline = "middle"; ctx.font = "600 12px " + getComputedStyle(document.body).fontFamily; ctx.fillStyle = getComputedStyle(card.querySelector("h3")).color;
+      var brand = "faktenstand.de", bwid = ctx.measureText(brand).width;
+      ctx.fillText(brand, tx, ry + 12);
+      ctx.font = small; ctx.fillStyle = muted; ctx.fillText("\u00b7 Ansicht vom " + per, tx + bwid + 6, ry + 12);
       cv.toBlob(function (b) {
         var a = document.createElement("a"); a.href = URL.createObjectURL(b);
         a.download = c.d.id + "_" + c.st.view + ".png"; document.body.appendChild(a); a.click(); a.remove();
