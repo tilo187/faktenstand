@@ -258,3 +258,4 @@ footer.site div{max-width:1120px;margin:0 auto;padding:16px}
 .badge.alt{background:color-mix(in srgb, var(--s4) 18%, transparent);color:var(--text-secondary);text-transform:none;letter-spacing:0;font-weight:600;vertical-align:2px}
 
 .kern-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.kern .lg-f{min-height:1.4em}@media(max-width:900px){.kern-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.topic-grid+.lage-box{margin-top:34px}.kern-box{margin-bottom:34px}
