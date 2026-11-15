@@ -882,7 +882,7 @@
       ctx.font = small; ctx.fillStyle = muted; ctx.textBaseline = "top";
       lines.forEach(function (l, i) { ctx.fillText(l, pad, y + i * 16); });
       ctx.font = "600 12px " + getComputedStyle(document.body).fontFamily; ctx.fillStyle = getComputedStyle(card.querySelector("h3")).color;
-      var brand = "Faktenlage", per = new Date().toLocaleDateString("de-DE"), bwid = ctx.measureText(brand).width;
+      var brand = "faktenstand.de", per = new Date().toLocaleDateString("de-DE"), bwid = ctx.measureText(brand).width;
       ctx.fillText(brand, pad, y + lines.length * 16 + 4);
       var host = /^https?:/.test(location.protocol) ? location.host + " · " : "";
       ctx.font = small; ctx.fillStyle = muted; ctx.fillText("· " + host + "Ansicht vom " + per, pad + bwid + 6, y + lines.length * 16 + 4);
