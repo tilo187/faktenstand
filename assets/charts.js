@@ -882,15 +882,16 @@
       ctx.strokeStyle = getComputedStyle(card).borderTopColor; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, y - 8); ctx.lineTo(W - pad, y - 8); ctx.stroke();
       ctx.font = small; ctx.fillStyle = muted; ctx.textBaseline = "top";
       lines.forEach(function (l, i) { ctx.fillText(l, pad, y + i * 16); });
-      var ry = y + lines.length * 16 + 4, per = new Date().toLocaleDateString("de-DE"), tx = pad;
-      if (logo) { var lh = 20, lw = lh * 418 / 76; ctx.drawImage(logo, pad, ry, lw, lh); tx = pad + lw + 10; }
-      ctx.textBaseline = "middle"; ctx.font = "600 12px " + getComputedStyle(document.body).fontFamily; ctx.fillStyle = getComputedStyle(card.querySelector("h3")).color;
-      var brand = "faktenstand.de", bwid = ctx.measureText(brand).width;
-      ctx.fillText(brand, tx, ry + 12);
-      ctx.font = small; ctx.fillStyle = muted; ctx.fillText("\u00b7 Ansicht vom " + per, tx + bwid + 6, ry + 12);
+      var ry = y + lines.length * 16 + 4, per = new Date().toLocaleDateString("de-DE"), tx = pad, ff = getComputedStyle(document.body).fontFamily, tc = getComputedStyle(card.querySelector("h3")).color;
+      if (logo) {
+        var lh = 20, lw = lh * 418 / 76; ctx.drawImage(logo, pad, ry, lw, lh); tx = pad + lw - 1;
+        ctx.textBaseline = "alphabetic"; ctx.font = "600 16px " + ff; ctx.fillStyle = tc; ctx.fillText(".de", tx, ry + 18.6); tx += ctx.measureText(".de").width + 10;
+      } else { ctx.textBaseline = "alphabetic"; ctx.font = "600 14px " + ff; ctx.fillStyle = tc; ctx.fillText("faktenstand.de", tx, ry + 15); tx += ctx.measureText("faktenstand.de").width + 10; }
+      ctx.font = small; ctx.fillStyle = muted; ctx.fillText("\u00b7 Ansicht vom " + per, tx, ry + 18.6);
       cv.toBlob(function (b) {
         var a = document.createElement("a"); a.href = URL.createObjectURL(b);
-        var zr = (isTimeChart(c.d) && c.st.view !== "balken" && c.d.years.length > 3 && (c.st.von !== c.def.von || c.st.bis !== c.def.bis)) ? "_" + c.d.years[c.st.von] + "-" + c.d.years[c.st.bis] : "";
+        function zl(y) { return periodLabel(y).replace(/^(\d)\. Qu\. (\d+)$/, "$2-Q$1").replace(/\s+/g, "-"); }
+        var zr = (isTimeChart(c.d) && c.st.view !== "balken" && c.d.years.length > 3 && (c.st.von !== c.def.von || c.st.bis !== c.def.bis)) ? "_" + zl(c.d.years[c.st.von]) + "-" + zl(c.d.years[c.st.bis]) : "";
         a.download = c.d.id + "_" + c.st.view + zr + ".png"; document.body.appendChild(a); a.click(); a.remove();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
       }, "image/png");
