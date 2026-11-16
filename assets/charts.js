@@ -86,6 +86,8 @@
     return d.einheit;
   }
   function decFor(d, st) { if (d.typ === "sankey") return st.einheit === "bip" ? 1 : 0; if (d.typ === "flaeche" && st.modus === "anteil") return 1; if (mode(d, st) === "absolut" && d.dezimal_absolut != null) return d.dezimal_absolut; return d.dezimal; }
+  // naechste vorhandene Periode zum Zeiger (Jahre, Monate und Quartale als Dezimaljahr)
+  function snap(years, v) { var b = years[0], bd = 1e9; for (var q = 0; q < years.length; q++) { var dd = Math.abs(years[q] - v); if (dd < bd) { bd = dd; b = years[q]; } } return b; }
   function lastIdx(arr) { for (var i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i; return -1; }
   function firstIdx(arr) { for (var i = 0; i < arr.length; i++) if (arr[i] != null) return i; return -1; }
   function label(d, code) { for (var i = 0; i < d.series.length; i++) if (d.series[i].code === code) return d.series[i].label; return code; }
@@ -208,7 +210,7 @@
   function lineStats(c, d, st, vals, codes, cmap, ref, iHover) {
     var years = d.years, u = boxU(c._unit), dec = decFor(d, st);
     var iL = -1; codes.forEach(function (k) { iL = Math.max(iL, lastIdx(vals[k])); });
-    var i = iHover == null ? iL : iHover; if (i < 0) { statBoxes(c, []); return; }
+    var i = (iHover == null || iHover < 0) ? iL : iHover; if (i < 0) { statBoxes(c, []); return; }
     var items = codes.map(function (k) {
       var arr = vals[k], j = i; if (iHover == null && arr[j] == null) j = lastIdx(arr);
       var v = j < 0 ? null : arr[j], pj = j - 1; while (pj >= 0 && arr[pj] == null) pj--;
@@ -264,7 +266,7 @@
     lineStats(c, d, st, vals, shown, cmap, ref, null);
     function move(ev) {
       var r = svg.getBoundingClientRect(), px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
-      var yr = Math.round(Y0 + (px - m.l) / (W - m.l - m.r) * (Y1 - Y0)); yr = Math.max(Y0, Math.min(Y1, yr));
+      var yr = snap(years, Y0 + (px - m.l) / (W - m.l - m.r) * (Y1 - Y0));
       var i = years.indexOf(yr);
       cross.setAttribute("x1", x(yr)); cross.setAttribute("x2", x(yr)); cross.setAttribute("visibility", "visible");
       shown.forEach(function (k, j) { var v = vals[k][i]; if (v == null) { dots[j].setAttribute("visibility", "hidden"); return; } dots[j].setAttribute("cx", x(yr)); dots[j].setAttribute("cy", yv(v)); dots[j].setAttribute("visibility", "visible"); });
@@ -281,7 +283,7 @@
       hit.style.cursor = near ? "pointer" : "crosshair";
       lineStats(c, d, st, vals, shown, cmap, ref, i);
       if (c.stats && shown.length) {
-        if (isCtx) showTip(ev, '<div class="t-year">' + yr + '</div><div class="row hl"><span><span class="sw line" style="background:var(--text-secondary)"></span><b>' + esc(label(d, near)) + '</b></span><span class="num"><b>' + fmtU(d, vals[near][i], dec, u) + '</b></span></div><div class="t-hint">Klicken, um diese Linie hervorzuheben</div>');
+        if (isCtx) showTip(ev, '<div class="t-year">' + periodLabel(yr) + '</div><div class="row hl"><span><span class="sw line" style="background:var(--text-secondary)"></span><b>' + esc(label(d, near)) + '</b></span><span class="num"><b>' + fmtU(d, vals[near][i], dec, u) + '</b></span></div><div class="t-hint">Klicken, um diese Linie hervorzuheben</div>');
         else if (near) showTip(ev, '<div class="t-hint" style="margin:0">Klicken, um ' + esc(label(d, near)) + " abzuwählen</div>");
         else hideTip();
         return;
@@ -289,7 +291,7 @@
       var rows = shown.map(function (k) { return { k: k, v: vals[k][i] }; }).sort(function (a, b) { return (b.v == null ? -1e18 : b.v) - (a.v == null ? -1e18 : a.v); });
       var top = isCtx ? '<div class="row hl"><span><span class="sw line" style="background:var(--text-secondary)"></span><b>' + esc(label(d, near)) + '</b></span><span class="num"><b>' + fmtU(d, vals[near][i], dec, u) + '</b></span></div><div class="t-hint">Klicken, um diese Linie hervorzuheben</div>' :
         (near ? '<div class="t-hint">Klicken, um ' + esc(label(d, near)) + " abzuwählen</div>" : "");
-      showTip(ev, '<div class="t-year">' + yr + "</div>" + top + rows.map(function (o) {
+      showTip(ev, '<div class="t-year">' + periodLabel(yr) + "</div>" + top + rows.map(function (o) {
         return '<div class="row"><span><span class="sw line" style="background:' + (o.k === ref ? "var(--ref)" : cmap[o.k]) + '"></span>' + esc(label(d, o.k)) + '</span><span class="num">' + fmtU(d, o.v, dec, u) + "</span></div>";
       }).join(""));
     }
@@ -331,7 +333,7 @@
       nm.textContent = label(d, k); nm.title = label(d, k); if (isDE) nm.style.boxShadow = "inset 0 -2px 0 var(--s1)";
       var li = lastIdx(vals[k]);
       var ct = changeText(d, vals[k], u, b0);
-      var dv = li < 0 ? "–" : (years[li] !== Y1 ? years[li] + ": " : "") + fmtU(d, vals[k][li], dec, shortU) + (ct ? " · " + ct : "");
+      var dv = li < 0 ? "–" : (years[li] !== Y1 ? periodLabel(years[li]) + ": " : "") + fmtU(d, vals[k][li], dec, shortU) + (ct ? " · " + ct : "");
       vl.textContent = dv; head.appendChild(nm); head.appendChild(vl); cell.appendChild(head);
       var ticks = shared;
       if (st.achse === "je-feld") {
@@ -347,7 +349,7 @@
       yAxis(svg, d, ticks, m, pw, yv, col === 0 || st.achse === "je-feld", true);
       refLines(svg, d, m, pw, yv, idx === 0 && pw >= 260);
       breakLines(svg, d, [k], x, m, Hh, false);
-      if (lastRow) [[Y0, "start"], [Math.round((Y0 + Y1) / 2), "middle"], [Y1, "end"]].forEach(function (a) { el("text", { x: x(a[0]), y: Hh - 4, "text-anchor": a[1] }, svg).textContent = a[0]; });
+      if (lastRow) [[Y0, "start"], [snap(years, (Y0 + Y1) / 2), "middle"], [Y1, "end"]].forEach(function (a) { el("text", { x: x(a[0]), y: Hh - 4, "text-anchor": a[1] }, svg).textContent = periodLabel(a[0]); });
       if (st.achse === "gemeinsam") body.filter(function (o) { return o !== k; }).forEach(function (o) { el("path", { d: pathFor(vals[o], years, x, yv, brk(d, o)), fill: "none" }, svg, { stroke: "var(--context)", strokeWidth: 0.8 }); });
       if (!isRef && ref && vals[ref]) el("path", { d: pathFor(vals[ref], years, x, yv, brk(d, ref)), fill: "none", "stroke-dasharray": "4 3" }, svg, { stroke: "var(--ref)", strokeWidth: 1.2 });
       el("path", { d: pathFor(vals[k], years, x, yv, brk(d, k)), fill: "none", "stroke-linejoin": "round" }, svg, { stroke: isRef ? "var(--ref)" : "var(--s1)", strokeWidth: 2 });
@@ -356,17 +358,17 @@
       var dot = el("circle", { r: 3.5, visibility: "hidden" }, svg, { fill: isRef ? "var(--ref)" : "var(--s1)", stroke: "var(--surface)", strokeWidth: 2 });
       var hit = el("rect", { x: 0, y: 0, width: pw, height: Hh, fill: "transparent" }, svg);
       refs.push({ k: k, x: x, yv: yv, cross: cross, dot: dot, vl: vl, dv: dv });
-      hit.addEventListener("pointermove", function (ev) { var r = svg.getBoundingClientRect(); var yr = Math.round(Y0 + (ev.clientX - r.left - m.l) / (pw - m.l - m.r) * (Y1 - Y0)); sync(Math.max(Y0, Math.min(Y1, yr))); });
+      hit.addEventListener("pointermove", function (ev) { var r = svg.getBoundingClientRect(); sync(snap(years, Y0 + (ev.clientX - r.left - m.l) / (pw - m.l - m.r) * (Y1 - Y0))); });
       hit.addEventListener("pointerleave", function () { sync(null); });
     });
     function sync(yr) {
       var i = yr == null ? -1 : years.indexOf(yr);
       refs.forEach(function (o) {
         var v = i < 0 ? null : vals[o.k][i];
-        if (yr == null || v == null) { o.cross.setAttribute("visibility", yr == null ? "hidden" : "visible"); o.dot.setAttribute("visibility", "hidden"); o.vl.textContent = yr == null ? o.dv : yr + ": –"; if (yr != null) { o.cross.setAttribute("x1", o.x(yr)); o.cross.setAttribute("x2", o.x(yr)); } return; }
+        if (yr == null || v == null) { o.cross.setAttribute("visibility", yr == null ? "hidden" : "visible"); o.dot.setAttribute("visibility", "hidden"); o.vl.textContent = yr == null ? o.dv : periodLabel(yr) + ": –"; if (yr != null) { o.cross.setAttribute("x1", o.x(yr)); o.cross.setAttribute("x2", o.x(yr)); } return; }
         var xx = o.x(yr); o.cross.setAttribute("x1", xx); o.cross.setAttribute("x2", xx); o.cross.setAttribute("visibility", "visible");
         o.dot.setAttribute("cx", xx); o.dot.setAttribute("cy", o.yv(v)); o.dot.setAttribute("visibility", "visible");
-        o.vl.textContent = yr + ": " + fmtU(d, v, dec, shortU);
+        o.vl.textContent = periodLabel(yr) + ": " + fmtU(d, v, dec, shortU);
       });
     }
     c.hint.className = st.achse === "je-feld" ? "hint warn" : "hint";
@@ -576,12 +578,12 @@
     var cross = el("line", { y1: m.t, y2: H - m.b, visibility: "hidden" }, svg, { stroke: "var(--text-primary)", strokeWidth: 1 });
     var hit = el("rect", { x: m.l, y: m.t, width: Math.max(0, W - m.l - m.r), height: H - m.t - m.b, fill: "transparent" }, svg);
     hit.addEventListener("pointermove", function (ev) {
-      var r = svg.getBoundingClientRect(); var yr = Math.round(Y0 + (ev.clientX - r.left - m.l) / (W - m.l - m.r) * (Y1 - Y0)); yr = Math.max(Y0, Math.min(Y1, yr));
+      var r = svg.getBoundingClientRect(); var yr = snap(years, Y0 + (ev.clientX - r.left - m.l) / (W - m.l - m.r) * (Y1 - Y0));
       var i = years.indexOf(yr); cross.setAttribute("x1", x(yr)); cross.setAttribute("x2", x(yr)); cross.setAttribute("visibility", "visible");
       areaStats(i);
       var tot = 0; d.series.forEach(function (s) { tot += vals[s.code][i] || 0; });
       var rows = d.series.map(function (s, si) { return { s: s, v: vals[s.code][i], col: bands[si].col }; }).reverse();
-      showTip(ev, '<div class="t-year">' + yr + "</div>" + rows.map(function (o) { return '<div class="row"><span><span class="sw" style="background:' + o.col + '"></span>' + esc(o.s.label) + '</span><span class="num">' + fmtU(d, o.v, dec, u) + "</span></div>"; }).join("") +
+      showTip(ev, '<div class="t-year">' + periodLabel(yr) + "</div>" + rows.map(function (o) { return '<div class="row"><span><span class="sw" style="background:' + o.col + '"></span>' + esc(o.s.label) + '</span><span class="num">' + fmtU(d, o.v, dec, u) + "</span></div>"; }).join("") +
         (st.modus === "anteil" ? "" : '<div class="row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px"><span>Insgesamt</span><span class="num">' + fmtU(d, tot, dec, u) + "</span></div>"));
     });
     hit.addEventListener("pointerleave", function () { cross.setAttribute("visibility", "hidden"); hideTip(); areaStats(null); });
