@@ -19,6 +19,7 @@
   }
   function h(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function gc(path, title) { try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: path, title: title, event: true }); } catch (e) {} }
 
   function nf(dec) { return new Intl.NumberFormat("de-DE", { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
   function unitSuffix(u) {
@@ -219,7 +220,8 @@
       return { k: k, label: label(d, k), v: v, color: k === ref ? "var(--ref)" : cmap[k], dashed: k === ref,
         per: j >= 0 ? periodLabel(years[j]) : "", value: fmtU(d, v, dec, u), sub: pv != null && v != null ? deltaTxt(d, v, pv, dec, u) + " ggü. " + periodLabel(years[pj]) : "" };
     });
-    items.sort(function (a, b) { return (b.v == null ? -1e18 : b.v) - (a.v == null ? -1e18 : a.v); });
+    var rk = function (o) { return o.k === "DE" ? 0 : (o.k === ref ? 1 : 2); };
+    items.sort(function (a, b) { return (rk(a) - rk(b)) || ((b.v == null ? -1e18 : b.v) - (a.v == null ? -1e18 : a.v)); });
     statBoxes(c, items, iHover == null ? "letzter Stand" : "Zeiger");
   }
 
@@ -690,6 +692,7 @@
   function defaultSel(d) {
     var ref = d.referenz, others = d.series.map(function (s) { return s.code; }).filter(function (k) { return k !== ref; });
     if (others.length <= 3) return others;
+    if (d.reihen && d.reihen.dim === "geo" && !d.auswahl && others.indexOf("DE") >= 0) return ["DE"];
     var want = (d.auswahl || d.standard_auswahl || []).filter(function (k) { return others.indexOf(k) >= 0; });
     if (want.length) return want.slice(0, maxSel(d));
     var v = d.values.real || d.values.nominal;
@@ -761,6 +764,7 @@
   }
 
   function render(c) {
+    if (!c.root.getClientRects().length) { c.pending = true; return; }
     var d = c.d, st = c.st;
     var dv = (isTimeChart(d) && st.view !== "balken" && d.years.length > 3) ? sliceD(d, st.von, st.bis) : d;
     var rd = st.view === "rangliste" && d.rang ? rangD(d) : null, rst = rd ? Object.assign({}, st, { jahr: st.rjahr }) : null;
@@ -786,7 +790,11 @@
       var hr = h("div", "chips-head"); hr.appendChild(h("p", "hint", "Bis zu " + (maxSel(d) === 4 ? "vier" : "drei") + " Reihen hervorheben, per Auswahl unten oder per Klick auf eine Linie."));
       var kb = h("button", "chip chip-toggle", (st.kontext === "aus" ? "Übrige grau einblenden" : "Übrige ausblenden")); kb.type = "button";
       kb.addEventListener("click", function () { st.kontext = st.kontext === "aus" ? "an" : "aus"; render(c); }); hr.appendChild(kb);
-      c.chips.appendChild(hr);
+      var det = h("details", "chips-det"); if (c.chipsOpen) det.open = true;
+      var geo = d.reihen && d.reihen.dim === "geo";
+      det.appendChild(h("summary", null, (geo ? "Länder wählen" : "Reihen wählen") + '<span class="sel-n">' + (st.sel.length ? esc(st.sel.map(function (k) { return label(d, k); }).join(", ")) : "keine") + "</span>"));
+      det.addEventListener("toggle", function () { c.chipsOpen = det.open; });
+      det.appendChild(hr);
       var box = h("div", "chips"); var cm = colorMap(d, st);
       others.forEach(function (k) {
         var on = st.sel.indexOf(k) >= 0, b = h("button", "chip", '<span class="dot" style="background:' + (on ? cm[k] : "") + '"></span>' + esc(label(d, k)));
@@ -794,7 +802,7 @@
         b.addEventListener("click", function () { if (on) st.sel = st.sel.filter(function (x) { return x !== k; }); else { st.sel.push(k); if (st.sel.length > maxSel(d)) st.sel.shift(); } render(c); });
         box.appendChild(b);
       });
-      c.chips.appendChild(box);
+      det.appendChild(box); c.chips.appendChild(det);
     }
     syncRange(c);
     var lst = st;
@@ -976,8 +984,8 @@
     }
     c.ctrls.addEventListener("click", function () { c.touched = true; });
     c.chips.addEventListener("click", function () { c.touched = true; });
-    card.querySelector(".dl-csv").addEventListener("click", function () { csv(c); });
-    var pb = card.querySelector(".dl-png"); if (pb) pb.addEventListener("click", function () { pb.disabled = true; pngExport(c).then(function () { pb.disabled = false; }, function () { pb.disabled = false; }); });
+    card.querySelector(".dl-csv").addEventListener("click", function () { csv(c); gc("export/csv/" + d.id, d.titel); });
+    var pb = card.querySelector(".dl-png"); if (pb) pb.addEventListener("click", function () { pb.disabled = true; var dh = card.querySelector("h3.dup"); if (dh) dh.classList.remove("dup"); var fin = function () { if (dh) dh.classList.add("dup"); pb.disabled = false; }; gc("export/png/" + d.id, d.titel); pngExport(c).then(fin, fin); });
     card.querySelector(".copy-link").addEventListener("click", function (ev) {
       c.touched = true; writeHash(c); var url = location.href, out = card.querySelector(".copied");
       try { navigator.clipboard.writeText(url).then(function () { out.textContent = " · kopiert"; }, function () { out.textContent = " · " + url; }); } catch (e) { out.textContent = " · " + url; }
@@ -1004,7 +1012,23 @@
     up.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
     var onScroll = function () { up.classList.toggle("show", window.scrollY > 600); };
     window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
-    var id = decodeURIComponent(location.hash.slice(1)).split("~")[0]; if (id) { var tgt = document.getElementById(id); if (tgt) tgt.scrollIntoView(); }
+    function foldFlush() { cards.forEach(function (c) { if (c.pending && c.root.getClientRects().length) { c.pending = false; render(c); } }); }
+    function openFor(id) {
+      var t = document.getElementById(id); if (!t) return null;
+      for (var p = t.parentElement; p; p = p.parentElement) if (p.tagName === "DETAILS" && !p.open) p.open = true;
+      foldFlush(); return t;
+    }
+    document.addEventListener("toggle", foldFlush, true);
+    document.querySelectorAll("[data-fold]").forEach(function (b) {
+      b.addEventListener("click", function () { var on = b.dataset.fold === "open"; document.querySelectorAll("details.fold").forEach(function (d) { d.open = on; }); foldFlush(); });
+    });
+    var td = document.querySelector(".toc-det"); if (td && window.matchMedia("(max-width:900px)").matches) td.open = false;
+    window.addEventListener("hashchange", function () { var i2 = decodeURIComponent(location.hash.slice(1)).split("~")[0]; if (i2) { var t2 = openFor(i2); if (t2) t2.scrollIntoView(); } });
+    if (window.IntersectionObserver) {
+      var seen = {}, io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting && !seen[e.target.id]) { seen[e.target.id] = 1; gc("grafik/" + e.target.id, (e.target.querySelector("h3") || {}).textContent || e.target.id); io.unobserve(e.target); } }); }, { threshold: 0.4 });
+      cards.forEach(function (c) { io.observe(c.root); });
+    }
+    var id = decodeURIComponent(location.hash.slice(1)).split("~")[0]; if (id) { var tgt = openFor(id); if (tgt) tgt.scrollIntoView(); }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

@@ -289,3 +289,40 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
 [id]{scroll-margin-top:calc(var(--hh,72px) + 12px)}
 .toc{top:calc(var(--hh,72px) + 16px)!important}
 @media (max-width:700px){.scrolled .top .nav{display:none}.scrolled .top .top-in{padding-top:8px;padding-bottom:8px}}
+
+/* ---- Umbau 16.11.2026: Auf- und Zuklappen, Auswahl, Suche, Touch ---- */
+.card{scroll-margin-top:calc(var(--hh,72px) + 12px)}
+.card h3.dup{display:none}
+.card h3.dup + .sub{margin-top:0}
+.section{margin:0 0 8px}
+.section:has(> details[open]){margin-bottom:34px}
+.fold > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.fold > summary::-webkit-details-marker{display:none}
+.fold > summary::before{content:"";flex:none;width:7px;height:7px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);transform:rotate(-45deg);transition:transform .15s;margin:0 4px 0 2px}
+.fold[open] > summary::before{transform:rotate(45deg)}
+.fold > summary h2{font-size:17px;line-height:1.3;margin:0;flex:1 1 auto;min-width:0;font-weight:600}
+.fold > summary:hover{border-color:var(--border-strong)}
+.fv{margin-left:auto;font-size:13.5px;color:var(--text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fold[open] > summary{border:0;background:none;padding:4px 0 2px}
+.fold[open] > summary h2{font-size:22px;font-weight:700}
+.fold[open] > summary .fv{display:none}
+.fold-body{padding-top:2px}
+.foldbar{display:flex;gap:8px;justify-content:flex-end;margin:0 0 14px}
+.foldbar button{font:inherit;font-size:12.5px;color:var(--text-secondary);background:transparent;border:1px solid var(--border);border-radius:999px;padding:4px 12px;min-height:32px;cursor:pointer}
+.foldbar button:hover{border-color:var(--border-strong);color:var(--text-primary)}
+.foldbar + .kapitel{border-top:0;padding-top:0}
+.chips-det{margin:0 0 10px}
+.chips-det > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;min-height:32px;font-size:13px;color:var(--text-secondary)}
+.chips-det > summary::-webkit-details-marker{display:none}
+.chips-det > summary::before{content:"";flex:none;width:6px;height:6px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);transform:rotate(-45deg);transition:transform .15s}
+.chips-det[open] > summary::before{transform:rotate(45deg)}
+.chips-det > summary .sel-n{color:var(--text-muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.chips-det[open] > summary{margin-bottom:6px}
+.kvp{color:var(--text-muted);font-size:11.5px;margin-left:6px;white-space:nowrap}
+.toc-det > summary{list-style:none;cursor:pointer}
+.toc-det > summary::-webkit-details-marker{display:none}
+.toc-det > summary h2{display:inline;margin:0}
+@media (min-width:901px){.toc-det > summary{pointer-events:none;cursor:default}.toc{max-height:calc(100vh - var(--hh,72px) - 32px);overflow:auto}}
+@media (max-width:900px){.toc-det > summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.toc-det > summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);transform:rotate(45deg);margin-right:4px}.toc-det[open] > summary::after{transform:rotate(-135deg)}.toc-det[open] > summary{margin-bottom:10px}}
+@media (max-width:600px){.fold > summary{flex-wrap:wrap;row-gap:2px}.fold > summary h2{font-size:16px}.fv{flex-basis:100%;margin-left:21px;white-space:normal}}
+@media (pointer:coarse){.chip{min-height:36px}.seg button{min-height:36px}.foot button.link{padding:7px 2px}.foldbar button{min-height:40px}.chips-det > summary{min-height:40px}}
