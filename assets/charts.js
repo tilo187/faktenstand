@@ -429,6 +429,45 @@
   }
 
 
+  // ---------------- Karte (Kreise, NUTS 3) ----------------
+  var MAPCOL = ["#e3edf9", "#b4cdee", "#7eaae1", "#4a82cf", "#1f56a8"];
+  function drawMap(c, d, st) {
+    var vals = getVals(d, st), i = d.years.map(String).indexOf(String(st.jahr)); if (i < 0) i = d.years.length - 1;
+    var u = c._unit, dec = decFor(d, st), per = periodLabel(d.years[i]), ref = d.referenz;
+    var rows = d.series.filter(function (s) { return s.code !== ref && d.geo[s.code]; }).map(function (s) { return { k: s.code, v: vals[s.code][i] }; }).filter(function (r) { return r.v != null; });
+    var sorted = rows.map(function (r) { return r.v; }).sort(function (a, b) { return a - b; });
+    var br = [1, 2, 3, 4].map(function (q) { return sorted[Math.floor(q / 5 * (sorted.length - 1))]; });
+    var cls = function (v) { var j = 0; while (j < 4 && v > br[j]) j++; return j; };
+    var byV = rows.slice().sort(function (a, b) { return b.v - a.v; }), rank = {}; byV.forEach(function (r, j) { rank[r.k] = j + 1; });
+    var items = [];
+    if (ref && vals[ref] && vals[ref][i] != null) items.push({ label: label(d, ref), per: per, color: "var(--ref)", dashed: true, value: fmtU(d, vals[ref][i], dec, boxU(u)), sub: "" });
+    if (byV.length) {
+      items.push({ label: "Höchster Wert", per: per, color: MAPCOL[4], value: fmtU(d, byV[0].v, dec, boxU(u)), sub: label(d, byV[0].k) });
+      items.push({ label: "Niedrigster Wert", per: per, color: MAPCOL[0], value: fmtU(d, byV[byV.length - 1].v, dec, boxU(u)), sub: label(d, byV[byV.length - 1].k) });
+    }
+    statBoxes(c, items);
+    var W = Math.min(c.chart.clientWidth, 640), bw = d.geo_box[0], bh = d.geo_box[1], H = Math.round(W * bh / bw);
+    var svg = el("svg", { width: W, height: H, viewBox: "0 0 " + bw + " " + bh, role: "img", "aria-label": d.titel + ", Karte der Kreise" }, c.chart, { display: "block", margin: "0 auto" });
+    var val = {}; rows.forEach(function (r) { val[r.k] = r.v; });
+    var hl = null;
+    Object.keys(d.geo).forEach(function (k) {
+      var v = val[k], p = el("path", { d: d.geo[k] }, svg, { fill: v == null ? "var(--chip-bg)" : MAPCOL[cls(v)], stroke: "var(--surface)", strokeWidth: 0.8, strokeLinejoin: "round" });
+      p.addEventListener("pointermove", function (ev) {
+        if (hl && hl !== p) { hl.style.stroke = "var(--surface)"; hl.style.strokeWidth = 0.8; }
+        hl = p; p.style.stroke = "var(--text-primary)"; p.style.strokeWidth = 2.2; svg.appendChild(p);
+        showTip(ev, '<div class="t-year">' + esc(label(d, k)) + '</div><div class="row"><span>' + per + '</span><span class="num">' + (v == null ? "keine Angabe" : fmtU(d, v, dec, u)) + "</span></div>" + (v == null ? "" : '<div class="row"><span>Rang</span><span class="num">' + rank[k] + " von " + rows.length + "</span></div>"));
+      });
+      p.addEventListener("pointerleave", function () { p.style.stroke = "var(--surface)"; p.style.strokeWidth = 0.8; hideTip(); });
+    });
+    var lab = [];
+    for (var j = 0; j < 5; j++) {
+      var lo = j === 0 ? sorted[0] : br[j - 1], hi = j === 4 ? sorted[sorted.length - 1] : br[j];
+      lab.push({ label: fmt(d, lo, dec) + " bis " + fmt(d, hi, dec), color: MAPCOL[j], box: true });
+    }
+    if (Object.keys(d.geo).some(function (k) { return val[k] == null; })) lab.push({ label: "keine Angabe", color: "var(--chip-bg)", box: true });
+    legend(c.legend, lab);
+  }
+
   // ---------------- Sankey: Einnahmen -> Staat -> Ausgaben ----------------
   var QCOL = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)", "var(--s7)"];
   function drawSankey(c, d, st) {
@@ -622,6 +661,7 @@
   // ---------------- card ----------------
   function viewsFor(d) {
     if (d.typ === "facetten") return [["linien", "Linien"], ["facetten", "Kacheln"], ["tabelle", "Tabelle"]];
+    if (d.geo) return [["karte", "Karte"], ["tabelle", "Tabelle"]];
     if (d.typ === "balken") return [["balken", "Balken"], ["tabelle", "Tabelle"]];
     if (d.typ === "flaeche") return [["flaeche", "Fläche"], ["tabelle", "Tabelle"]];
     if (d.typ === "sankey") return [["sankey", "Flussdiagramm"], ["tabelle", "Tabelle"]];
@@ -768,6 +808,7 @@
     else if (rd) drawBars(c, rd, rst);
     else if (st.view === "flaeche") drawArea(c, dv, st);
     else if (st.view === "sankey") drawSankey(c, d, st);
+    else if (st.view === "karte") drawMap(c, d, st);
     else drawTable(c, dv, st);
     writeHash(c);
   }
