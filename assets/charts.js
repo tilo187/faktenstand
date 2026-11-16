@@ -29,7 +29,8 @@
   function fmt(d, v, dec) { if (v == null || isNaN(v)) return "–"; return nf(dec == null ? d.dezimal : dec).format(v); }
   function fmtU(d, v, dec, unit) { if (v == null || isNaN(v)) return "–"; return fmt(d, v, dec) + unitSuffix(unit || d._unit); }
   function isQ(p) { if (typeof p !== "number") return false; var f = (p - Math.floor(p)) * 4; return Math.abs(f - Math.round(f) - 0.004) < 1e-6; }
-  function periodLabel(p) { if (isQ(p)) return (Math.round((p - Math.floor(p)) * 4) + 1) + ". Qu. " + Math.floor(p); if (typeof p === "number" && p % 1) { var jj = Math.floor(p), mm = Math.round((p - jj) * 12); return ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."][mm] + " " + jj; } var m = /^(\d{4})-S([12])$/.exec(String(p)); return m ? m[2] + ". Hj. " + m[1] : String(p); }
+  var MON = ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."];
+  function periodLabel(p) { if (typeof p === "number" && p >= 1 && p <= 12 && p % 1 === 0) return MON[p - 1]; if (isQ(p)) return (Math.round((p - Math.floor(p)) * 4) + 1) + ". Qu. " + Math.floor(p); if (typeof p === "number" && p % 1) { var jj = Math.floor(p), mm = Math.round((p - jj) * 12); return ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."][mm] + " " + jj; } var m = /^(\d{4})-S([12])$/.exec(String(p)); return m ? m[2] + ". Hj. " + m[1] : String(p); }
   function axisFmt(d, v, step) {
     var dec = step < 1 ? (step < 0.1 ? 2 : 1) : 0;
     var u = d._unit; var a = Math.abs(v);
