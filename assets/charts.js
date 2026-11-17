@@ -232,7 +232,7 @@
     var ref = d.referenz, others = d.series.map(function (s) { return s.code; }).filter(function (k) { return k !== ref; });
     var cmap = colorMap(d, st);
     var shown = st.sel.slice(); if (ref && vals[ref]) shown.push(ref);
-    var m = { l: 52, r: narrow ? 12 : 150, t: 14, b: 26 };
+    var m = { l: 52, r: narrow ? 12 : 150, t: 24, b: 26 };
     var svg = el("svg", { width: W, height: H, role: "img", "aria-label": d.titel }, c.chart);
     var all = []; d.series.forEach(function (s) { all = all.concat(vals[s.code]); });
     var ticks = domainTicks(d, all, 5), ymin = ticks[0], ymax = ticks[ticks.length - 1];
@@ -244,9 +244,26 @@
     eventLines(svg, d, x, m, H, Y0, Y1);
     breakLines(svg, d, shown, x, m, H, true);
     var ctx = others.filter(function (k) { return !cmap[k] && st.kontext !== "aus"; });
+    // Ländervergleiche: die übrigen Länder als Band vom niedrigsten bis zum höchsten Wert, die Linien bleiben blass darüber (Zeiger hebt sie hervor)
+    var band = ctx.length >= 3 && d.reihen && d.reihen.dim === "geo", spanne = null;
+    if (band) {
+      var top = "", bot = [], lastI = -1;
+      years.forEach(function (y, i) {
+        var vs = ctx.map(function (k) { return vals[k][i]; }).filter(function (v) { return v != null; });
+        if (vs.length < 2) return;
+        var lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+        top += (top ? "L" : "M") + x(y).toFixed(1) + "," + yv(hi).toFixed(1); bot.unshift(x(y).toFixed(1) + "," + yv(lo).toFixed(1)); lastI = i;
+      });
+      if (top) el("path", { d: top + "L" + bot.join("L") + "Z" }, svg, { fill: "var(--context)", opacity: 0.55, stroke: "none" });
+      if (lastI >= 0) {
+        var vv = ctx.filter(function (k) { return vals[k][lastI] != null; }).sort(function (a, b) { return vals[b][lastI] - vals[a][lastI]; });
+        if (vv.length) spanne = { hi: vv[0], lo: vv[vv.length - 1], y: years[lastI] };
+      }
+    }
     ctx.forEach(function (k) {
-      el("path", { d: pathFor(vals[k], years, x, yv, brk(d, k)), fill: "none" }, svg, { stroke: "var(--context)", strokeWidth: 1 });
+      el("path", { d: pathFor(vals[k], years, x, yv, brk(d, k)), fill: "none" }, svg, { stroke: "var(--context)", strokeWidth: band ? 0.8 : 1, opacity: band ? 0.9 : 1 });
     });
+    if (c._unit && !/^Index/.test(c._unit)) el("text", { x: 4, y: 11, class: "ax-u" }, svg).textContent = c._unit.length > 24 ? "" : (/^je /.test(c._unit) ? c._unit : "in " + c._unit);
     var hl = el("path", { fill: "none", visibility: "hidden", "stroke-linejoin": "round" }, svg, { stroke: "var(--text-secondary)", strokeWidth: 2 });
     var hlLab = el("text", { class: "lab halo", visibility: "hidden" }, svg, { fontWeight: "600" });
     if (ref && vals[ref]) el("path", { d: pathFor(vals[ref], years, x, yv, brk(d, ref)), fill: "none", "stroke-dasharray": "5 4" }, svg, { stroke: "var(--ref)", strokeWidth: 1.6 });
@@ -309,7 +326,8 @@
     hit.addEventListener("pointerleave", function () { hl.setAttribute("visibility", "hidden"); hlLab.setAttribute("visibility", "hidden"); cross.setAttribute("visibility", "hidden"); dots.forEach(function (o) { o.setAttribute("visibility", "hidden"); }); hideTip(); lineStats(c, d, st, vals, shown, cmap, ref, null); });
     var items = st.sel.map(function (k) { return { label: label(d, k), color: cmap[k] }; });
     if (ref && vals[ref]) items.push({ label: label(d, ref), color: "var(--ref)", dashed: true });
-    if (others.length > st.sel.length && st.kontext !== "aus") items.push({ label: "übrige", color: "var(--context)" });
+    if (spanne) items.push({ label: "Spanne der übrigen Länder (" + periodLabel(spanne.y) + ": oben " + label(d, spanne.hi) + ", unten " + label(d, spanne.lo) + ")", color: "var(--context)", box: true });
+    else if (others.length > st.sel.length && st.kontext !== "aus") items.push({ label: "übrige", color: "var(--context)" });
     if (narrow) (d.referenzlinien || []).forEach(function (r) { items.push({ label: r.text, color: "var(--text-muted)", dashed: true }); });
     legend(c.legend, items);
   }

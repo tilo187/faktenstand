@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://faktenstand.de/sitemap.xml
