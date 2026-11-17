@@ -357,3 +357,4 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
 .lead,.lead-wide{max-width:86ch}
 .prose p,.prose .glossar,.prose .name-def,.prose h2{max-width:86ch}
 .tile .tv{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px;row-gap:2px}.tile .tv .dl{margin-left:0;vertical-align:0}
+.lead.lead-wide{max-width:none}
