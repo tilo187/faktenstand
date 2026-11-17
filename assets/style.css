@@ -38,7 +38,7 @@ a{color:var(--s1)}
 .top{background:var(--surface);border-bottom:1px solid var(--border)}
 .top-in{max-width:1120px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:space-between}
 .brand{font-weight:700;font-size:18px;color:var(--text-primary);text-decoration:none}
-.brand{display:inline-flex;align-items:center}.brand .logo{display:block;color:var(--text-primary)}.logo .lg-dot{fill:#2a6fdb}.logo .lg-inv{fill:var(--surface)}@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo .lg-dot{fill:#6fa3f5}}:root[data-theme="dark"] .logo .lg-dot{fill:#6fa3f5}
+.brand{display:inline-flex;align-items:center}.brand .logo{display:block;color:var(--text-primary)}.logo .lg-k{fill:#000}.logo .lg-r{fill:#DD0000}.logo .lg-g{fill:#FFCE00}@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo .lg-k{fill:#55544F}}:root[data-theme="dark"] .logo .lg-k{fill:#55544F}
 .nav{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px}
 .nav a{color:var(--text-secondary);text-decoration:none;padding:2px 0;border-bottom:2px solid transparent}
 .nav a[aria-current="page"]{color:var(--text-primary);border-bottom-color:var(--s1)}
@@ -128,7 +128,7 @@ details li{margin:0 0 4px}
 .list h2{font-size:20px;margin:24px 0 6px}
 .list ul{margin:0;padding-left:18px}
 .list li{margin:0 0 4px}
-.prose{max-width:72ch}
+.prose{max-width:none}
 .prose h2{font-size:20px;margin:28px 0 6px}
 footer.site{border-top:1px solid var(--border);color:var(--text-muted);font-size:13px}
 footer.site div{max-width:1120px;margin:0 auto;padding:16px}
