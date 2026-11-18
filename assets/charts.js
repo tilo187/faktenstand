@@ -693,15 +693,12 @@
     if (!d.rang) return v;
     var i = v.length - 1; return v.slice(0, i).concat([["rangliste", "Rangliste"]], v.slice(i));
   }
-  function monD(d) {
-    if (!d._md) {
-      var r = {}; for (var k in d.mon) r[k] = d.mon[k]; r.typ = "linien"; r.id = d.id; if (r.referenz == null) r.referenz = d.referenz;
-      var Y = r.years, a0 = 0; while (a0 < Y.length - 1 && Y[a0] < Y[Y.length - 1] - 5) a0++;   // Standard: die letzten fünf Jahre
-      if (a0 > 0) r = sliceD(r, a0, Y.length - 1);
-      d._md = r;
-    }
-    return d._md;
+  function monFull(d) {
+    if (!d._mf) { var r = {}; for (var k in d.mon) r[k] = d.mon[k]; r.typ = "linien"; r.id = d.id; if (r.referenz == null) r.referenz = d.referenz; d._mf = r; }
+    return d._mf;
   }
+  function monStart(d) { var Y = monFull(d).years, a0 = 0; while (a0 < Y.length - 1 && Y[a0] < Y[Y.length - 1] - 5) a0++; return a0; }   // Standard: die letzten fünf Jahre
+  function monD(d, st) { var r = monFull(d); return sliceD(r, st.mvon, st.mbis); }
   function rangD(d) {
     if (!d._rd) { var r = {}; for (var k in d.rang) r[k] = d.rang[k]; r.typ = "balken"; r.id = d.id; if (r.referenz == null) r.referenz = d.referenz; d._rd = r; }
     return d._rd;
@@ -757,28 +754,30 @@
     for (var m in d.values) { o.values[m] = {}; for (var c in d.values[m]) o.values[m][c] = d.values[m][c].slice(a, b + 1); }
     return o;
   }
+  function rangeSet(c) { var d = c.d; return (c.st.view === "monat" && d.mon) ? { Y: monFull(d).years, a: "mvon", b: "mbis" } : { Y: d.years, a: "von", b: "bis" }; }
   function buildRange(c) {
     var d = c.d, n = d.years.length;
     var box = h("div", "rangebox", '<span class="rg-l"></span><div class="rg-track"><div class="rg-fill"></div><input type="range" class="rg-a" min="0" max="' + (n - 1) + '" step="1" aria-label="Beginn des Zeitraums"><input type="range" class="rg-b" min="0" max="' + (n - 1) + '" step="1" aria-label="Ende des Zeitraums"></div><span class="rg-r"></span>');
     var a = box.querySelector(".rg-a"), b = box.querySelector(".rg-b");
     function upd(which) {
-      var va = +a.value, vb = +b.value;
+      var rs = rangeSet(c), n = rs.Y.length, va = +a.value, vb = +b.value;
       if (which === "a" && va > vb - 1) { va = vb - 1; a.value = va; }
       if (which === "b" && vb < va + 1) { vb = va + 1; b.value = vb; }
       if (va < 0) { va = 0; a.value = 0; } if (vb > n - 1) { vb = n - 1; b.value = vb; }
-      c.st.von = va; c.st.bis = vb; c.touched = true; render(c);
+      c.st[rs.a] = va; c.st[rs.b] = vb; c.touched = true; render(c);
     }
     a.addEventListener("input", function () { upd("a"); }); b.addEventListener("input", function () { upd("b"); });
     c.legend.parentNode.insertBefore(box, c.legend.nextSibling); c.range = box;
   }
   function syncRange(c) {
-    var d = c.d, n = d.years.length, st = c.st, box = c.range; if (!box) return;
-    var show = isTimeChart(d) && n > 3 && st.view !== "balken" && st.view !== "sankey" && st.view !== "rangliste" && st.view !== "monat";
+    var d = c.d, st = c.st, box = c.range; if (!box) return;
+    var rs = rangeSet(c), Y = rs.Y, n = Y.length, va = st[rs.a], vb = st[rs.b];
+    var show = st.view === "monat" ? (!!d.mon && n > 3) : (isTimeChart(d) && n > 3 && st.view !== "balken" && st.view !== "sankey" && st.view !== "rangliste");
     box.style.display = show ? "" : "none"; if (!show) return;
     var a = box.querySelector(".rg-a"), b = box.querySelector(".rg-b");
-    a.value = st.von; b.value = st.bis;
-    box.querySelector(".rg-l").textContent = periodLabel(d.years[st.von]); box.querySelector(".rg-r").textContent = periodLabel(d.years[st.bis]);
-    var f = box.querySelector(".rg-fill"); f.style.left = (st.von / (n - 1) * 100) + "%"; f.style.width = ((st.bis - st.von) / (n - 1) * 100) + "%";
+    a.max = b.max = n - 1; a.value = va; b.value = vb;
+    box.querySelector(".rg-l").textContent = periodLabel(Y[va]); box.querySelector(".rg-r").textContent = periodLabel(Y[vb]);
+    var f = box.querySelector(".rg-fill"); f.style.left = (va / (n - 1) * 100) + "%"; f.style.width = ((vb - va) / (n - 1) * 100) + "%";
   }
 
   function render(c) {
@@ -786,7 +785,7 @@
     var d = c.d, st = c.st;
     var dv = (isTimeChart(d) && st.view !== "balken" && d.years.length > 3) ? sliceD(d, st.von, st.bis) : d;
     var rd = st.view === "rangliste" && d.rang ? rangD(d) : null, rst = rd ? Object.assign({}, st, { jahr: st.rjahr }) : null;
-    var mdv = st.view === "monat" && d.mon ? monD(d) : null;
+    var mdv = st.view === "monat" && d.mon ? monD(d, st) : null;
     if (mdv) dv = mdv;
     c._unit = unitFor(rd || mdv || d, st);
     c.sub.textContent = rd ? subline(rd, rst) : subline(dv, st);
@@ -845,6 +844,7 @@
     ["view", "werte", "achse", "sort", "modus", "jahr", "rjahr", "kontext", "einheit", "offen"].forEach(function (k) { if (st[k] != null && st[k] !== c.def[k]) p.set(k, st[k]); });
     if (st.sel.join("|") !== c.def.sel.join("|")) p.set("sel", st.sel.join("|"));
     if (st.von !== c.def.von) p.set("von", String(c.d.years[st.von])); if (st.bis !== c.def.bis) p.set("bis", String(c.d.years[st.bis]));
+    if (c.d.mon) { var MY = monFull(c.d).years; if (st.mvon !== c.def.mvon) p.set("mvon", String(MY[st.mvon])); if (st.mbis !== c.def.mbis) p.set("mbis", String(MY[st.mbis])); }
     var s = p.toString(); history.replaceState(null, "", "#" + c.d.id + (s ? "~" + s : ""));
   }
   function readHash(c) {
@@ -854,6 +854,7 @@
     if (p.get("sel")) c.st.sel = p.get("sel").split("|").slice(0, maxSel(c.d));
     var ys = c.d.years.map(String), iv = ys.indexOf(p.get("von")), ib = ys.indexOf(p.get("bis"));
     if (iv >= 0) c.st.von = iv; if (ib >= 0) c.st.bis = ib; if (c.st.bis - c.st.von < 1) { c.st.von = 0; c.st.bis = ys.length - 1; }
+    if (c.d.mon) { var my = monFull(c.d).years.map(String), jv = my.indexOf(p.get("mvon")), jb = my.indexOf(p.get("mbis")); if (jv >= 0) c.st.mvon = jv; if (jb >= 0) c.st.mbis = jb; if (c.st.mbis - c.st.mvon < 1) { c.st.mvon = monStart(c.d); c.st.mbis = my.length - 1; } }
   }
 
   function csv(c) {
@@ -961,7 +962,8 @@
       cv.toBlob(function (b) {
         var a = document.createElement("a"); a.href = URL.createObjectURL(b);
         function zl(y) { return periodLabel(y).replace(/^(\d)\. Qu\. (\d+)$/, "$2-Q$1").replace(/\s+/g, "-"); }
-        var zr = (isTimeChart(c.d) && c.st.view !== "balken" && c.d.years.length > 3 && (c.st.von !== c.def.von || c.st.bis !== c.def.bis)) ? "_" + zl(c.d.years[c.st.von]) + "-" + zl(c.d.years[c.st.bis]) : "";
+        var zm = c.st.view === "monat" && c.d.mon, MYr = zm ? monFull(c.d).years : null;
+        var zr = zm ? ((c.st.mvon !== c.def.mvon || c.st.mbis !== c.def.mbis) ? "_" + zl(MYr[c.st.mvon]) + "-" + zl(MYr[c.st.mbis]) : "") : (isTimeChart(c.d) && c.st.view !== "balken" && c.d.years.length > 3 && (c.st.von !== c.def.von || c.st.bis !== c.def.bis)) ? "_" + zl(c.d.years[c.st.von]) + "-" + zl(c.d.years[c.st.bis]) : "";
         a.download = c.d.id + "_" + c.st.view + zr + ".png"; document.body.appendChild(a); a.click(); a.remove();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
       }, "image/png");
@@ -975,7 +977,7 @@
     c.hint = card.querySelector(".hint-box"); c.chart = card.querySelector(".chart"); c.legend = card.querySelector(".legend");
     c.stats = h("div", "stats"); c.stats.setAttribute("aria-live", "polite"); c.stats.style.display = "none"; c.chart.parentNode.insertBefore(c.stats, c.chart);
     var views = viewsAll(d);
-    var st = { view: views[0][0], werte: d.values.real ? "real" : "nominal", achse: "gemeinsam", sort: d.sortierung === "keine" ? "keine" : "wert", sel: defaultSel(d), modus: "absolut", jahr: d.standardjahr, einheit: "mrd", offen: "", von: 0, bis: d.years.length - 1, rjahr: d.rang ? d.rang.standardjahr : null };
+    var st = { view: views[0][0], werte: d.values.real ? "real" : "nominal", achse: "gemeinsam", sort: d.sortierung === "keine" ? "keine" : "wert", sel: defaultSel(d), modus: "absolut", jahr: d.standardjahr, einheit: "mrd", offen: "", von: 0, bis: d.years.length - 1, mvon: d.mon ? monStart(d) : 0, mbis: d.mon ? monFull(d).years.length - 1 : 0, rjahr: d.rang ? d.rang.standardjahr : null };
     var nOthers = d.series.filter(function (x) { return x.code !== d.referenz; }).length;
     st.kontext = "an";
     c.def = JSON.parse(JSON.stringify(st)); c.st = st; buildRange(c); readHash(c);
