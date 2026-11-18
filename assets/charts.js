@@ -949,6 +949,23 @@
     var p = Promise.resolve(); jobs.forEach(function (j) { p = p.then(j); });
     var lg = document.querySelector(".brand svg.logo"), logoP = lg ? svgImage(lg) : Promise.resolve(null);
     return p.then(function () { return logoP; }).then(function (logo) {
+      // Wasserzeichen oben rechts in der Diagrammfläche (nicht am Rand, damit es sich nicht wegschneiden lässt)
+      var LC = layout.filter(function (l) { return l.e === c.chart; })[0];
+      if (logo && LC) {
+        // Diagrammfläche aus den Gitter- und Achsenlinien (über alle Teilgrafiken), sonst die ganze Grafik
+        var svs = [].slice.call(c.chart.querySelectorAll("svg")).filter(function (s) { return visible(s) && s.getBoundingClientRect().width > 80; });
+        var pr = null, nh = 0, nv = 0;
+        svs.forEach(function (s) { [].slice.call(s.querySelectorAll("line")).forEach(function (ln) {
+          var q = ln.getBoundingClientRect(), sr = s.getBoundingClientRect(), hz = q.height < 2 && q.width > sr.width * 0.4, vt = q.width < 2 && q.height > sr.height * 0.3;
+          if (hz) nh++; if (vt) nv++;
+          if (hz || vt) { if (!pr) pr = { top: q.top, right: q.right, bottom: q.bottom }; else { pr.top = Math.min(pr.top, q.top); pr.right = Math.max(pr.right, q.right); pr.bottom = Math.max(pr.bottom, q.bottom); } } }); });
+        if (!pr && svs.length) { var r0 = svs[0].getBoundingClientRect(); pr = { top: r0.top, right: r0.right }; svs.forEach(function (s) { var q = s.getBoundingClientRect(); pr.top = Math.min(pr.top, q.top); pr.right = Math.max(pr.right, q.right); }); }
+        if (!pr) pr = { top: LC.r.top, right: LC.r.right };
+        var oyc = LC.r.top - LC.y, wh = 16, ww = wh * 402 / 76;
+        // Liegende Balken (nur senkrechte Gitterlinien): oben rechts steht der längste Balken, daher unten rechts in der Fläche
+        var wy = (nv && !nh && pr.bottom) ? pr.bottom - wh - 8 : pr.top + 8;
+        ctx.save(); ctx.globalAlpha = 0.3; ctx.drawImage(logo, pr.right - cr.left - ww - 8, wy - oyc, ww, wh); ctx.restore();
+      }
       var y = H - pad - 28 - lines.length * 16 + 6, muted = getComputedStyle(card.querySelector(".foot")).color;
       ctx.strokeStyle = getComputedStyle(card).borderTopColor; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, y - 8); ctx.lineTo(W - pad, y - 8); ctx.stroke();
       ctx.font = small; ctx.fillStyle = muted; ctx.textBaseline = "top";
