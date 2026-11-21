@@ -1000,7 +1000,7 @@
     c.def = JSON.parse(JSON.stringify(st)); c.st = st; buildRange(c); readHash(c);
     c.ctrls.appendChild(seg("view", "Ansicht", views, st, c));
     if (d.values.real) c.ctrls.appendChild(seg("werte", "Werte", [["nominal", "nominal"], ["real", "real"]], st, c));
-    if (d.values.absolut) c.ctrls.appendChild(seg("werte", "Werte", [["nominal", d.einheit], ["absolut", "absolut"]], st, c));
+    if (d.values.absolut) { var wl = d.werte_labels || {}; c.ctrls.appendChild(seg("werte", wl.titel || "Werte", [["nominal", wl.nominal || d.einheit], ["absolut", wl.absolut || "absolut"]], st, c)); }
     if (d.typ === "facetten") {
       c.ctrls.appendChild(seg("achse", "y-Achse", [["gemeinsam", "gemeinsam"], ["je-feld", "je Feld"]], st, c));
       c.ctrls.appendChild(seg("sort", "Sortierung", [["wert", "nach letztem Wert"], ["alpha", "A–Z"]], st, c));
